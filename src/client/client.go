@@ -1,6 +1,8 @@
 package client
 
 import (
+	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/gorilla/websocket"
@@ -19,7 +21,13 @@ func NewClient(username string) *Client {
 
 func (c *Client) Connect(serverURL string) error {
 	u := url.URL{Scheme: "ws", Host: serverURL, Path: "/ws"}
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+
+	headers := http.Header{}
+	headers.Set("User-Agent", c.Username)
+
+	fmt.Println("User-Agent: ", headers.Values("User-Agent"))
+
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
 	if err != nil {
 		return err
 	}

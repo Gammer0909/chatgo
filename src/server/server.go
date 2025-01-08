@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/Gammer0909/chatgo/src/common"
 	"github.com/gorilla/websocket"
 )
 
@@ -13,13 +15,17 @@ type Server struct {
 	Messages     []string
 	MessagesFile *os.File
 	Users        []string
+	Connections  []*websocket.Conn
 
 	Upgrader websocket.Upgrader
 }
 
 func NewServer(upgrader websocket.Upgrader) *Server {
 
-	fileMsg, err := os.OpenFile("chat_log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	t := time.Now().Format("2008-01-09 15:05")
+	fileName := "data/log_" + t + ".txt"
+
+	fileMsg, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println("An error occured opening the file, ", err)
 		return nil
@@ -29,6 +35,7 @@ func NewServer(upgrader websocket.Upgrader) *Server {
 		Messages:     make([]string, 0),
 		MessagesFile: fileMsg,
 		Users:        make([]string, 0),
+		Connections:  make([]*websocket.Conn, 0),
 
 		Upgrader: upgrader,
 	}
@@ -37,52 +44,84 @@ func NewServer(upgrader websocket.Upgrader) *Server {
 
 func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
-	if !Contains(s.Users, r.UserAgent()) {
+	if !common.ContainsString(s.Users, r.UserAgent()) {
 		s.Users = append(s.Users, r.UserAgent())
 	}
+
+	fmt.Println(s.Connections)
 
 	conn, err := s.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Failed to upgrade connection:", err)
 		return
 	}
-	defer conn.Close()
+
+	if !common.ContainsConnection(s.Connections, conn) {
+		s.Connections = append(s.Connections, conn)
+	}
+
+	defer func() {
+		s.removeUser(r.UserAgent())
+		s.removeConnection(conn)
+		conn.Close()
+	}()
 
 	fmt.Println("Connection established with ", r.RemoteAddr)
 
 	for {
 		messageType, msg, err := conn.ReadMessage()
 		if err != nil {
-			log.Println("An error occurred: ", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				log.Printf("Unexpected close error: %v\n", err)
+			} else {
+				log.Println("Connection closed: ", err)
+			}
 			break
 		}
 
-		fmt.Printf("Client sent: %s\n", msg)
-		_, err = s.MessagesFile.WriteString(string(msg) + "\n")
+		formattedMsg := fmt.Sprintf("[%s]: %s", r.UserAgent(), msg)
+		_, err = s.MessagesFile.WriteString(string(formattedMsg))
 		if err != nil {
 			log.Println("Failed to write message to file:", err)
 			break
 		}
 
-		if err := conn.WriteMessage(messageType, msg); err != nil {
-			log.Printf("Error writing message: %s\n", err)
-			break
-		}
+		s.broadcastMessage(messageType, msg, conn, r.UserAgent())
 
 	}
 
-	s.Users = s.Users[:len(s.Users)-1]
 }
 
-func Contains(slice []string, target string) bool {
-
-	for i := 0; i < len(slice); i++ {
-		if slice[i] == target {
-			return true
+func (s *Server) removeUser(userAgent string) {
+	for i, user := range s.Users {
+		if user == userAgent {
+			s.Users = append(s.Users[:i], s.Users[i+1:]...)
+			break
 		}
 	}
-	return false
+}
 
+func (s *Server) removeConnection(conn *websocket.Conn) {
+	for i, c := range s.Connections {
+		if c == conn {
+			s.Connections = append(s.Connections[:i], s.Connections[i+1:]...)
+			break
+		}
+	}
+}
+
+func (s *Server) broadcastMessage(messageType int, message []byte, sender *websocket.Conn, userName string) {
+
+	formatMessage := fmt.Sprintf("[%s]: %s", userName, message)
+
+	for _, conn := range s.Connections {
+		if conn == sender {
+			formatMessage = fmt.Sprintf("[YOU]: %s", message)
+		}
+		if err := conn.WriteMessage(messageType, []byte(formatMessage)); err != nil {
+			log.Printf("Error broadcasting message: %s", err)
+		}
+	}
 }
 
 func (s *Server) Close() {

@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 	if len(os.Args) < 1 {
-		fmt.Println("Expected Usage: chatgo [server|client]")
+		fmt.Println("Expected Usage: chatgo [server|client <username>]")
 		return
 	}
 	if os.Args[1] == "server" {
@@ -36,11 +36,26 @@ func main() {
 			return
 		}
 
+		go func() {
+			for {
+				response, err := client.ReceiveMessage()
+				if err != nil {
+					fmt.Println("An error occurred: ", err)
+					return
+				}
+				fmt.Printf("\r%s\n> ", response)
+			}
+		}()
+
+		go func() {
+
+		}()
+
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			fmt.Print("> ")
 			sent, _ := reader.ReadString('\n')
-			if sent == "quit" {
+			if sent == "quit\n" || sent == "q\n" {
 				break
 			}
 			err := client.SendMessage(sent)
@@ -49,18 +64,11 @@ func main() {
 				return
 			}
 
-			response, err := client.ReceiveMessage()
-			if err != nil {
-				fmt.Println("An error occurred: ", err)
-				return
-			}
-			fmt.Println("[SERVER]: ", response)
-
 		}
 
 		client.Close()
 		return
 	}
 
-	fmt.Println("Expected Usage: chatgo [server|client]")
+	fmt.Println("Expected Usage: chatgo [server|client <username>]")
 }
