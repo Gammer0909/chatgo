@@ -112,11 +112,14 @@ func (s *Server) removeConnection(conn *websocket.Conn) {
 
 func (s *Server) broadcastMessage(messageType int, message []byte, sender *websocket.Conn, userName string) {
 
-	formatMessage := fmt.Sprintf("[%s]: %s", userName, message)
-
 	for _, conn := range s.Connections {
+		formatMessage := fmt.Sprintf("[%s]: %s", userName, message)
 		if conn == sender {
 			formatMessage = fmt.Sprintf("[YOU]: %s", message)
+			if err := conn.WriteMessage(messageType, []byte(formatMessage)); err != nil {
+				log.Printf("Error broadcasting message: %s", err)
+			}
+			continue
 		}
 		if err := conn.WriteMessage(messageType, []byte(formatMessage)); err != nil {
 			log.Printf("Error broadcasting message: %s", err)
