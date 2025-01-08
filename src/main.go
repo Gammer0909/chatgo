@@ -1,6 +1,7 @@
 package main
 
 import (
+	// "bufio"
 	"bufio"
 	"fmt"
 	"log"
@@ -29,6 +30,7 @@ func main() {
 		log.Fatal(http.ListenAndServe(":8080", nil))
 		server.Close()
 	} else if os.Args[1] == "client" {
+
 		client := client.NewClient(os.Args[2])
 		err := client.Connect("localhost:8080")
 		if err != nil {
@@ -45,10 +47,6 @@ func main() {
 				}
 				fmt.Printf("\r%s\n> ", response)
 			}
-		}()
-
-		go func() {
-
 		}()
 
 		reader := bufio.NewReader(os.Stdin)

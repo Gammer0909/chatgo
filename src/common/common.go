@@ -21,3 +21,10 @@ func ContainsString(slice []string, target string) bool {
 	return false
 
 }
+
+func Max(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

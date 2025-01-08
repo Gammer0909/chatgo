@@ -11,6 +11,7 @@ import (
 type Client struct {
 	Username string
 	Conn     *websocket.Conn
+	Messages []string
 }
 
 func NewClient(username string) *Client {
@@ -41,6 +42,9 @@ func (c *Client) SendMessage(message string) error {
 	if err != nil {
 		return err
 	}
+
+	formatted := fmt.Sprintf("[YOU]: %s", message)
+	c.Messages = append(c.Messages, formatted)
 	return nil
 }
 
@@ -49,7 +53,7 @@ func (c *Client) ReceiveMessage() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	c.Messages = append(c.Messages, string(message))
 	return string(message), nil
 }
 
