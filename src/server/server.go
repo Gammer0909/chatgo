@@ -25,6 +25,11 @@ func NewServer(upgrader websocket.Upgrader) *Server {
 	t := time.Now().Format("2008-01-09 15:05")
 	fileName := "./data/log_" + t + ".txt"
 
+	if err := os.MkdirAll("./data", os.ModePerm); err != nil {
+		log.Println("An error occurred creating the directory, ", err)
+		return nil
+	}
+
 	fileMsg, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println("An error occured opening the file, ", err)
