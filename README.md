@@ -46,6 +46,29 @@ One of my main ideas for this project is that due to it being open-sourced, and 
 
 If there's anything else you'd like to see customizeable, again, make an issue and we'll talk about that!
 
+## Building
+
+If you don't feel like building this application, please grab the newest executable from the [releases page](https://github.com/Gammer0909/chatgo/releases)!
+
+If you *do* feel like building the application, first make sure you have go 1.23.4 installed.
+
+Then, grab the source code:
+```
+git clone https://github.com/Gammer0909/chatgo.git
+# Or, using SSH:
+git clone git@github.com:Gammer0909/chatgo.git
+```
+
+Make sure you download the dependencies:
+```
+go get github.com/charmbracelet/bubbletea
+go get github.com/charmbracelet/lipgloss
+go get github.com/gorilla/websocket
+go get github.com/charmbracelet/bubbles
+```
+Then, everything should be ready to build!
+`go build -o chatgo`
+
 ## Contributing
 
 Please don't
